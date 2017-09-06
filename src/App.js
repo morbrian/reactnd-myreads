@@ -4,16 +4,27 @@ import * as BooksAPI from './BooksAPI'
 import { Route } from 'react-router-dom'
 import './App.css'
 
-const BookShelfChanger = props => (
-    <div className="book-shelf-changer">
-      <select>
-        <option value="none" disabled>Move to...</option>
-        <option value="currentlyReading">Currently Reading</option>
-        <option value="wantToRead">Want to Read</option>
-        <option value="read">Read</option>
-        <option value="none">None</option>
-      </select>
-    </div>
+
+const Book = props => (
+    <li key={props.book.id}>
+      <div className="book">
+        <div className="book-top">
+          <div className="book-cover" style={{ width: 128, height: 188,
+            backgroundImage: `url(${props.book.imageLinks.thumbnail})` }} />
+          <div className="book-shelf-changer">
+            <select value={props.book.shelf} onChange={event => {props.handler.moveBookToShelf(props.book, event.target.value);}}>
+              <option value="none" disabled>Move to...</option>
+              <option value="currentlyReading">Currently Reading</option>
+              <option value="wantToRead">Want to Read</option>
+              <option value="read">Read</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+        </div>
+        <div className="book-title">{props.book.title}</div>
+        <AuthorList authors={props.book.authors}/>
+      </div>
+    </li>
 );
 
 const AuthorList = props => (
@@ -28,28 +39,9 @@ const AuthorList = props => (
 const BookList = props => (
     <ol className="books-grid">
       {props.books.map((book) => (
-          <li key={book.id}>
-            <div className="book">
-              <div className="book-top">
-                <div className="book-cover" style={{ width: 128, height: 188,
-                  backgroundImage: `url(${book.imageLinks.thumbnail})` }} />
-                <BookShelfChanger/>
-              </div>
-              <div className="book-title">{book.title}</div>
-              <AuthorList authors={book.authors}/>
-            </div>
-          </li>
+          <Book key={book.id} book={book} handler={props.handler}/>
         ))}
     </ol>
-);
-
-const BookShelf = props => (
-    <div className="bookshelf">
-      <h2 className="bookshelf-title">{props.shelfTitle}</h2>
-      <div className="bookshelf-books">
-        <BookList books={props.books}/>
-      </div>
-    </div>
 );
 
 class SearchBooks extends Component {
@@ -93,9 +85,29 @@ class SearchBooks extends Component {
   }
 }
 
+const BookShelf = props => (
+    <div className="bookshelf">
+      <h2 className="bookshelf-title">{props.shelfTitle}</h2>
+      <div className="bookshelf-books">
+        <BookList books={props.books} handler={props.handler}/>
+      </div>
+    </div>
+);
+
 class BooksApp extends Component {
   state = {
     books: []
+  };
+
+  stateHandler = {
+    moveBookToShelf: (book, shelf) => {
+      BooksAPI.update(book, shelf).then(() => {
+        book.shelf = shelf;
+        this.setState(state => ({
+          books: state.books.filter((b) => b.id !== book.id).concat([ book ])
+        }));
+      })
+    }
   };
 
   componentDidMount() {
@@ -116,19 +128,19 @@ class BooksApp extends Component {
                 <div>
                   <BookShelf
                       books={this.state.books.filter((book) => book.shelf === "currentlyReading")}
-                      shelfTitle="Currently Reading"
+                      shelfTitle="Currently Reading" handler={this.stateHandler}
                   />
                   <BookShelf
                       books={this.state.books.filter((book) => book.shelf === "wantToRead")}
-                      shelfTitle="Want To Read"
+                      shelfTitle="Want To Read" handler={this.stateHandler}
                   />
                   <BookShelf
                       books={this.state.books.filter((book) => book.shelf === "read")}
-                      shelfTitle="Read"
+                      shelfTitle="Read" handler={this.stateHandler}
                   />
                   <BookShelf
                       books={this.state.books.filter((book) => book.shelf === "none" || book.shelf === "")}
-                      shelfTitle="None"
+                      shelfTitle="None" handler={this.stateHandler}
                   />
                 </div>
               </div>
