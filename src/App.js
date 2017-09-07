@@ -10,10 +10,10 @@ const Book = props => (
       <div className="book">
         <div className="book-top">
           <div className="book-cover" style={{ width: 128, height: 188,
-            backgroundImage: `url(${props.book.imageLinks.thumbnail})` }} />
+            backgroundImage: `url(${props.book && props.book.imageLinks && props.book.imageLinks.thumbnail})` }} />
           <div className="book-shelf-changer">
-            <select value={props.book.shelf} onChange={event => {props.handler.moveBookToShelf(props.book, event.target.value);}}>
-              <option value="none" disabled>Move to...</option>
+            <select value={(props.book.shelf) ? props.book.shelf : "none"} onChange={event => {props.handler.moveBookToShelf(props.book, event.target.value);}}>
+              <option value="" disabled>Move to...</option>
               <option value="currentlyReading">Currently Reading</option>
               <option value="wantToRead">Want to Read</option>
               <option value="read">Read</option>
@@ -29,7 +29,7 @@ const Book = props => (
 
 const AuthorList = props => (
     <div className="book-authors">
-      {props.authors.map((author) => (
+      { props.authors && props.authors.map((author) => (
           <p key={author}>{author}</p>
         )
       )}
@@ -38,7 +38,7 @@ const AuthorList = props => (
 
 const BookList = props => (
     <ol className="books-grid">
-      {props.books.map((book) => (
+      {props.books && props.books.length > 0 && props.books.map((book) => (
           <Book key={book.id} book={book} handler={props.handler}/>
         ))}
     </ol>
@@ -46,11 +46,23 @@ const BookList = props => (
 
 class SearchBooks extends Component {
   state = {
-    query: ''
+    query: '',
+    books: []
   };
 
+  stateHandler = new StateHandler(this);
+
   updateQuery = (query) => {
-    this.setState({ query: query.trim() })
+    query = query.trim()
+    if (query !== this.state.query) {
+      if (query) {
+        BooksAPI.search(query, 50).then((books) => {
+          this.setState({query: query, books: books});
+        });
+      } else {
+        this.setState({query: query, books: []})
+      }
+    }
   };
 
   render() {
@@ -78,7 +90,7 @@ class SearchBooks extends Component {
         </div>
       </div>
       <div className="search-books-results">
-        <ol className="books-grid"></ol>
+        <BookList books={this.state.books} handler={this.stateHandler}/>
       </div>
     </div>
     );
@@ -94,24 +106,32 @@ const BookShelf = props => (
     </div>
 );
 
+class StateHandler {
+  constructor(delegate) {
+    this.delegate = delegate;
+  }
+
+  moveBookToShelf(book, shelf) {
+    BooksAPI.update(book, shelf).then(() => {
+      book.shelf = shelf;
+      this.delegate.setState(state => ({
+        books: state.books.filter((b) => b.id !== book.id).concat([ book ])
+      }));
+    })
+  }
+
+}
+
 class BooksApp extends Component {
   state = {
     books: []
   };
 
-  stateHandler = {
-    moveBookToShelf: (book, shelf) => {
-      BooksAPI.update(book, shelf).then(() => {
-        book.shelf = shelf;
-        this.setState(state => ({
-          books: state.books.filter((b) => b.id !== book.id).concat([ book ])
-        }));
-      })
-    }
-  };
+  stateHandler = new StateHandler(this);
 
   componentDidMount() {
     BooksAPI.getAll().then((books) => {
+      console.log("mounted");
       this.setState({ books })
     })
   }
@@ -137,10 +157,6 @@ class BooksApp extends Component {
                   <BookShelf
                       books={this.state.books.filter((book) => book.shelf === "read")}
                       shelfTitle="Read" handler={this.stateHandler}
-                  />
-                  <BookShelf
-                      books={this.state.books.filter((book) => book.shelf === "none" || book.shelf === "")}
-                      shelfTitle="None" handler={this.stateHandler}
                   />
                 </div>
               </div>
