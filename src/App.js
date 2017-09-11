@@ -4,7 +4,6 @@ import * as BooksAPI from './BooksAPI'
 import { Route } from 'react-router-dom'
 import './App.css'
 
-
 const Book = props => (
     <li key={props.book.id}>
       <div className="book">
@@ -12,7 +11,7 @@ const Book = props => (
           <div className="book-cover" style={{ width: 128, height: 188,
             backgroundImage: `url(${props.book && props.book.imageLinks && props.book.imageLinks.thumbnail})` }} />
           <div className="book-shelf-changer">
-            <select value={(props.book.shelf) ? props.book.shelf : "none"} onChange={event => {props.handler.moveBookToShelf(props.book, event.target.value);}}>
+            <select value={(props.book.shelf) ? props.book.shelf : "none"} onChange={event => {props.onBookMoved(props.book, event.target.value);}}>
               <option value="" disabled>Move to...</option>
               <option value="currentlyReading">Currently Reading</option>
               <option value="wantToRead">Want to Read</option>
@@ -39,7 +38,7 @@ const AuthorList = props => (
 const BookList = props => (
     <ol className="books-grid">
       {props.books && props.books.length > 0 && props.books.map((book) => (
-          <Book key={book.id} book={book} handler={props.handler}/>
+          <Book key={book.id} book={book} onBookMoved={props.onBookMoved}/>
         ))}
     </ol>
 );
@@ -47,26 +46,26 @@ const BookList = props => (
 class SearchBooks extends Component {
   state = {
     query: '',
-    books: []
+    results: []
   };
 
-  stateHandler = new StateHandler(this);
-
   updateQuery = (query) => {
-    query = query.trim()
+    query = query.trim();
     if (query !== this.state.query) {
       if (query) {
-        BooksAPI.search(query, 50).then((books) => {
-          this.setState({query: query, books: books});
+        BooksAPI.search(query, 50).then((bookArray) => {
+          this.setState({query: query, results: bookArray});
+          //results = books;
         });
       } else {
-        this.setState({query: query, books: []})
+        this.setState({query: query, results: []})
+        //results = [];
       }
     }
   };
 
   render() {
-    const { query } = this.state;
+    const { query, results } = this.state;
 
     return (<div className="search-books">
       <div className="search-books-bar">
@@ -90,7 +89,7 @@ class SearchBooks extends Component {
         </div>
       </div>
       <div className="search-books-results">
-        <BookList books={this.state.books} handler={this.stateHandler}/>
+        <BookList books={results} onBookMoved={this.props.onBookMoved}/>
       </div>
     </div>
     );
@@ -101,38 +100,46 @@ const BookShelf = props => (
     <div className="bookshelf">
       <h2 className="bookshelf-title">{props.shelfTitle}</h2>
       <div className="bookshelf-books">
-        <BookList books={props.books} handler={props.handler}/>
+        <BookList books={props.books} onBookMoved={props.onBookMoved}/>
       </div>
     </div>
 );
 
-class StateHandler {
-  constructor(delegate) {
-    this.delegate = delegate;
-  }
+function extractShelf(books, shelf) {
+  return books.filter((book) => book.shelf === shelf).map((book) => {return book.id;})
+}
 
-  moveBookToShelf(book, shelf) {
-    BooksAPI.update(book, shelf).then(() => {
-      book.shelf = shelf;
-      this.delegate.setState(state => ({
-        books: state.books.filter((b) => b.id !== book.id).concat([ book ])
-      }));
-    })
+function organizeShelves(books) {
+  return {
+    currentlyReading: extractShelf(books, "currentlyReading"),
+    wantToRead: extractShelf(books, "wantToRead"),
+    read: extractShelf(books, "read")
   }
-
 }
 
 class BooksApp extends Component {
   state = {
-    books: []
+    bookMap: new Map([]),
+    shelves: {currentlyReading: [], wantToRead: [], read: []}
   };
 
-  stateHandler = new StateHandler(this);
-
   componentDidMount() {
-    BooksAPI.getAll().then((books) => {
-      console.log("mounted");
-      this.setState({ books })
+    console.log("mounted booksapp");
+    BooksAPI.getAll().then((bookArray) => {
+      this.setState({
+        bookMap: new Map(bookArray.map((book) => [book.id, book])),
+        shelves: organizeShelves(bookArray)
+      })
+    })
+  }
+
+  moveBookToShelf(book, shelf) {
+    BooksAPI.update(book, shelf).then(shelves => {
+      book.shelf = shelf;
+      this.setState(state => ({
+        bookMap: this.state.bookMap,
+        shelves: shelves
+      }));
     })
   }
 
@@ -147,16 +154,18 @@ class BooksApp extends Component {
               <div className="list-books-content">
                 <div>
                   <BookShelf
-                      books={this.state.books.filter((book) => book.shelf === "currentlyReading")}
-                      shelfTitle="Currently Reading" handler={this.stateHandler}
+                      books={this.state.shelves.currentlyReading.map(id =>  {return this.state.bookMap.get(id)})}
+                      shelfTitle="Currently Reading" onBookMoved={(book, shelf) => {this.moveBookToShelf(book, shelf);}}
                   />
                   <BookShelf
-                      books={this.state.books.filter((book) => book.shelf === "wantToRead")}
-                      shelfTitle="Want To Read" handler={this.stateHandler}
+                      books={this.state.shelves.wantToRead.map(id => {return this.state.bookMap.get(id)})}
+                      shelfTitle="Want To Read"
+                      onBookMoved={(book, shelf) => {this.moveBookToShelf(book, shelf);}}
                   />
                   <BookShelf
-                      books={this.state.books.filter((book) => book.shelf === "read")}
-                      shelfTitle="Read" handler={this.stateHandler}
+                      books={this.state.shelves.read.map(id => {return this.state.bookMap.get(id)})}
+                      shelfTitle="Read"
+                      onBookMoved={(book, shelf) => {this.moveBookToShelf(book, shelf);}}
                   />
                 </div>
               </div>
@@ -169,7 +178,7 @@ class BooksApp extends Component {
             </div>
         )}/>
         <Route path="/search" render={() => (
-            <SearchBooks/>
+            <SearchBooks onBookMoved={(book, shelf) => {this.moveBookToShelf(book, shelf);}}/>
         )}/>
       </div>
     )
