@@ -50,16 +50,19 @@ class SearchBooks extends Component {
   };
 
   updateQuery = (query) => {
-    query = query.trim();
     if (query !== this.state.query) {
       if (query) {
-        BooksAPI.search(query, 50).then((bookArray) => {
-          this.setState({query: query, results: bookArray});
-          //results = books;
+        BooksAPI.search(query.trim(), 50).then((bookArray) => {
+          this.setState({query: query,
+            results: bookArray && bookArray.map ? bookArray.map((book) => {
+              return this.props.bookMap.has(book.id)
+                  ? this.props.bookMap.get(book.id)
+                  : this.props.bookMap.set(book.id, book).get(book.id)
+          }) : []
+          });
         });
       } else {
         this.setState({query: query, results: []})
-        //results = [];
       }
     }
   };
@@ -178,7 +181,8 @@ class BooksApp extends Component {
             </div>
         )}/>
         <Route path="/search" render={() => (
-            <SearchBooks onBookMoved={(book, shelf) => {this.moveBookToShelf(book, shelf);}}/>
+            <SearchBooks bookMap={this.state.bookMap}
+                onBookMoved={(book, shelf) => {this.moveBookToShelf(book, shelf);}}/>
         )}/>
       </div>
     )
