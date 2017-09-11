@@ -2,6 +2,14 @@
 
 MyReads is my implementation of the first project for the Udacity React Nanodegree.
 
+
+## Running App
+
+* install all project dependencies with `npm install`
+* start the development server with `npm start`
+
+Expect a browser window to open to the application page.
+
 ## Application Files
 
 ### App.js

@@ -69,13 +69,15 @@ class BooksApp extends Component {
    * @param shelf
    */
   moveBookToShelf(book, shelf) {
-    BooksAPI.update(book, shelf).then(shelves => {
-      book.shelf = shelf;
-      this.setState(state => ({
-        bookMap: this.state.bookMap,
-        shelves: shelves
-      }));
-    })
+    if (book.shelf !== shelf) {
+      BooksAPI.update(book, shelf).then(shelves => {
+        book.shelf = shelf;
+        this.setState(state => ({
+          bookMap: this.state.bookMap,
+          shelves: shelves
+        }));
+      })
+    }
   }
 
   render() {
