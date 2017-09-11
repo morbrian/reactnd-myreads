@@ -1,4 +1,5 @@
 import React from 'react'
+import PropTypes from 'prop-types';
 import './App.css'
 
 const Book = props => (
@@ -24,6 +25,11 @@ const Book = props => (
     </li>
 );
 
+Book.propTypes = {
+  book: PropTypes.object.isRequired,
+  onBookMoved: PropTypes.func.isRequired
+};
+
 const AuthorList = props => (
     <div className="book-authors">
       { props.authors && props.authors.map((author) => (
@@ -33,6 +39,10 @@ const AuthorList = props => (
     </div>
 );
 
+AuthorList.propTypes = {
+  authors: PropTypes.array.isRequired
+};
+
 const BookList = props => (
     <ol className="books-grid">
       {props.books && props.books.length > 0 && props.books.map((book) => (
@@ -41,5 +51,10 @@ const BookList = props => (
       ))}
     </ol>
 );
+
+BookList.propTypes = {
+  books: PropTypes.array.isRequired,
+  onBookMoved: PropTypes.func.isRequired
+};
 
 export default BookList

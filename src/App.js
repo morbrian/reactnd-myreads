@@ -1,7 +1,8 @@
 import React, { Component }  from 'react'
 import { Link } from 'react-router-dom'
-import * as BooksAPI from './BooksAPI'
 import { Route } from 'react-router-dom'
+import PropTypes from 'prop-types';
+import * as BooksAPI from './BooksAPI'
 import SearchBooks from './SearchBooks'
 import BookList from './BookList'
 import './App.css'
@@ -26,6 +27,11 @@ const BookShelf = props => (
       </div>
     </div>
 );
+
+BookShelf.propTypes = {
+  books: PropTypes.array.isRequired,
+  onBookMoved: PropTypes.func.isRequired
+};
 
 class BooksApp extends Component {
   state = {
