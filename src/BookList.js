@@ -40,7 +40,7 @@ const AuthorList = props => (
 );
 
 AuthorList.propTypes = {
-  authors: PropTypes.array.isRequired
+  authors: PropTypes.array
 };
 
 const BookList = props => (

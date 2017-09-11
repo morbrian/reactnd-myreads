@@ -10,10 +10,15 @@ class SearchBooks extends Component {
     results: []
   };
 
-  updateQuery = (query) => {
+  /**
+   * @description if query has changed and is truthy call backend search api for results.
+   */
+  updateQuery(query) {
     if (query !== this.state.query) {
       if (query) {
         BooksAPI.search(query.trim(), 50).then((bookArray) => {
+          // if we already have the book on a shelf, we use that instance of the book,
+          // otherwise we use the unshelved book downloaded in the search results.
           this.setState({query: query,
             results: bookArray && bookArray.map ? bookArray.map((book) => {
               return this.props.bookMap.has(book.id)

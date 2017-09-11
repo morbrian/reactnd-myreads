@@ -7,10 +7,21 @@ import SearchBooks from './SearchBooks'
 import BookList from './BookList'
 import './App.css'
 
+/**
+ * @description include id of all book elements matching the named shelf
+ * @param books
+ * @param shelf
+ * @return {array} of book ids
+ */
 function extractShelf(books, shelf) {
   return books.filter((book) => book.shelf === shelf).map((book) => {return book.id;})
 }
 
+/**
+ * @description produce list of supported shelves with array of book ids for each shelf
+ * @param books
+ * @returns {{currentlyReading: array, wantToRead: array, read: array}}
+ */
 function organizeShelves(books) {
   return {
     currentlyReading: extractShelf(books, "currentlyReading"),
@@ -39,6 +50,10 @@ class BooksApp extends Component {
     shelves: {currentlyReading: [], wantToRead: [], read: []}
   };
 
+  /**
+   * @description organize the book array into a Map of id to book object and
+   * create array of book ids for each shelf.
+   */
   componentDidMount() {
     BooksAPI.getAll().then((bookArray) => {
       this.setState({
@@ -48,6 +63,11 @@ class BooksApp extends Component {
     })
   }
 
+  /**
+   * @description move book to shelf locally and with call to backend api.
+   * @param book
+   * @param shelf
+   */
   moveBookToShelf(book, shelf) {
     BooksAPI.update(book, shelf).then(shelves => {
       book.shelf = shelf;
